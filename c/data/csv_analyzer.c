@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,7 @@ void read_csv() {
     FILE *file = fopen(FILENAME, "r");
     char line[LINE_LENGTH];
     char *token;
+    char *line_ptr;
     int i = 0;
 
     if (file == NULL) {
@@ -56,20 +58,23 @@ void read_csv() {
     }
 
     while (fgets(line, LINE_LENGTH, file) != NULL && i < MAX_RECORDS) {
-        token = strtok(line, ",");
-        if (token) data[i].height = atoi(token);
+        line[strcspn(line, "\n")] = 0;
+        line_ptr = line;
 
-        token = strtok(NULL, ",");
-        if (token) data[i].weight = atoi(token);
+        token = strsep(&line_ptr, ",");
+        data[i].height = (token && *token) ? atoi(token) : 0;
 
-        token = strtok(NULL, ",");
-        if (token) data[i].gender = token[0];
+        token = strsep(&line_ptr, ",");
+        data[i].weight = (token && *token) ? atoi(token) : 0;
 
-        token = strtok(NULL, ",");
-        if (token) data[i].CGPA = atof(token);
+        token = strsep(&line_ptr, ",");
+        data[i].gender = (token && *token) ? token[0] : ' ';
 
-        token = strtok(NULL, ",");
-        if (token) data[i].age = atoi(token);
+        token = strsep(&line_ptr, ",");
+        data[i].CGPA = (token && *token) ? atof(token) : 0.0;
+
+        token = strsep(&line_ptr, ",");
+        data[i].age = (token && *token) ? atoi(token) : 0;
 
         i++;
     }
