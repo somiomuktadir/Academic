@@ -1,4 +1,4 @@
-# C and SQL Code Repository
+# Code Repository
 
 This repository contains a collection of C codes, C++ programs, and SQL scripts designed for a university-level course.
 
