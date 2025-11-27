@@ -6,10 +6,15 @@
 #include <iomanip>
 #include <stdexcept>
 #include <cmath>
+#include <initializer_list>
+#include <functional>
+#include <string>
+
+namespace LinAlg {
 
 class Matrix {
 private:
-    std::vector<std::vector<double>> data;
+    std::vector<double> data;  // Flat storage for better cache locality
     int rows;
     int cols;
 
@@ -17,6 +22,7 @@ public:
     // Constructors
     Matrix(int r, int c, double initialValue = 0.0);
     Matrix(const std::vector<std::vector<double>>& d);
+    Matrix(std::initializer_list<std::initializer_list<double>> list);
     
     // Copy constructor and assignment
     Matrix(const Matrix& other) = default;
@@ -29,15 +35,39 @@ public:
     // Accessors
     int getRows() const;
     int getCols() const;
+    
+    // Checked access (bounds checking)
     double& at(int r, int c);
     const double& at(int r, int c) const;
+    
+    // Unchecked access (faster, use in tight loops)
+    double& operator()(int r, int c);
+    const double& operator()(int r, int c) const;
 
-    // Operations
+    // Comparison operators
+    bool operator==(const Matrix& other) const;
+    bool operator!=(const Matrix& other) const;
+
+    // Arithmetic operations
     Matrix operator+(const Matrix& other) const;
     Matrix operator-(const Matrix& other) const;
     Matrix operator*(const Matrix& other) const;
     Matrix operator*(double scalar) const;
     Matrix transpose() const;
+    
+    // Element-wise operations
+    Matrix hadamard(const Matrix& other) const;  // Element-wise multiplication
+    Matrix applyFunction(std::function<double(double)> func) const;
+    
+    // Matrix manipulation
+    void resize(int newRows, int newCols, double fillValue = 0.0);
+    Matrix submatrix(int startRow, int startCol, int numRows, int numCols) const;
+    static Matrix hstack(const Matrix& A, const Matrix& B);  // Horizontal concatenation
+    static Matrix vstack(const Matrix& A, const Matrix& B);  // Vertical concatenation
+    
+    // File I/O
+    void saveCSV(const std::string& filename) const;
+    static Matrix loadCSV(const std::string& filename);
     
     // Analysis
     double trace() const;
@@ -52,5 +82,7 @@ public:
     // Friend functions for scalar multiplication (scalar * Matrix)
     friend Matrix operator*(double scalar, const Matrix& mat);
 };
+
+} // namespace LinAlg
 
 #endif // MATRIX_H

@@ -2,13 +2,15 @@
 #include <vector>
 #include <string>
 #include <limits>
+#include <cmath>
 #include "Matrix.h"
 #include "VectorOps.h"
 #include "LinearSolver.h"
 #include "Decomposer.h"
-#include "Decomposer.h"
 #include "Analysis.h"
 #include "Logger.h"
+
+using namespace LinAlg;
 
 void clearInput() {
     std::cin.clear();
@@ -23,7 +25,7 @@ Matrix inputMatrix(const std::string& name) {
     std::cout << "Enter elements row by row:" << std::endl;
     for (int i = 0; i < r; ++i) {
         for (int j = 0; j < c; ++j) {
-            std::cin >> M.at(i, j);
+            std::cin >> M(i, j);
         }
     }
     return M;
@@ -49,7 +51,9 @@ void printMenu() {
     std::cout << "4. Determinant & Inverse" << std::endl;
     std::cout << "5. Decompositions (LU, Cholesky, QR, Eigen, SVD, Diagonalization)" << std::endl;
     std::cout << "6. Analysis (PCA, Rank, Trace)" << std::endl;
-    std::cout << "7. Toggle Verbose Mode (Current: " << (Logger::getInstance().isEnabled() ? "ON" : "OFF") << ")" << std::endl;
+    std::cout << "7. File I/O (Save/Load CSV)" << std::endl;
+    std::cout << "8. Matrix Manipulation (Submatrix, Stack, Hadamard)" << std::endl;
+    std::cout << "9. Toggle Verbose Mode (Current: " << (Logger::getInstance().isEnabled() ? "ON" : "OFF") << ")" << std::endl;
     std::cout << "0. Exit" << std::endl;
     std::cout << "Select option: ";
 }
@@ -66,7 +70,7 @@ int main() {
         try {
             if (choice == 0) break;
             
-            if (choice == 7) {
+            if (choice == 9) {
                 if (Logger::getInstance().isEnabled()) Logger::getInstance().disable();
                 else Logger::getInstance().enable();
                 continue;
@@ -74,7 +78,7 @@ int main() {
             
             switch (choice) {
                 case 1: { // Matrix Ops
-                    std::cout << "1. Add  2. Subtract  3. Multiply  4. Transpose  5. Power" << std::endl;
+                    std::cout << "1. Add  2. Subtract  3. Multiply  4. Transpose  5. Power  6. Hadamard" << std::endl;
                     int sub; std::cin >> sub;
                     if (sub == 4) {
                         Matrix A = inputMatrix("Matrix A");
@@ -86,6 +90,11 @@ int main() {
                         std::cout << "Enter power n: "; std::cin >> n;
                         std::cout << "A^" << n << ":" << std::endl;
                         LinearSolver::power(A, n).print();
+                    } else if (sub == 6) {
+                        Matrix A = inputMatrix("Matrix A");
+                        Matrix B = inputMatrix("Matrix B");
+                        std::cout << "Hadamard product (element-wise):" << std::endl;
+                        A.hadamard(B).print();
                     } else {
                         Matrix A = inputMatrix("Matrix A");
                         Matrix B = inputMatrix("Matrix B");
@@ -113,9 +122,17 @@ int main() {
                     break;
                 }
                 case 3: { // Linear Solver
+                    std::cout << "1. Standard  2. Cholesky (for SPD)  3. Least Squares  4. Refined" << std::endl;
+                    int sub; std::cin >> sub;
                     Matrix A = inputMatrix("Matrix A");
                     std::vector<double> b = inputVector("Vector b");
-                    std::vector<double> x = LinearSolver::solve(A, b);
+                    std::vector<double> x;
+                    
+                    if (sub == 1) x = LinearSolver::solve(A, b);
+                    else if (sub == 2) x = LinearSolver::solveCholesky(A, b);
+                    else if (sub == 3) x = LinearSolver::leastSquares(A, b);
+                    else if (sub == 4) x = LinearSolver::solveRefined(A, b);
+                    
                     std::cout << "Solution x: ";
                     VectorOps::print(x);
                     break;
@@ -178,7 +195,7 @@ int main() {
                     break;
                 }
                 case 6: { // Analysis
-                    std::cout << "1. PCA  2. Rank  3. Trace" << std::endl;
+                    std::cout << "1. PCA  2. Rank  3. Trace  4. Condition Number" << std::endl;
                     int sub; std::cin >> sub;
                     if (sub == 1) {
                         Matrix X = inputMatrix("Data Matrix X (rows=samples, cols=features)");
@@ -193,6 +210,84 @@ int main() {
                     } else if (sub == 3) {
                         Matrix A = inputMatrix("Matrix A");
                         std::cout << "Trace: " << A.trace() << std::endl;
+                    } else if (sub == 4) {
+                        Matrix A = inputMatrix("Matrix A");
+                        std::cout << "Condition Number: " << A.conditionNumber() << std::endl;
+                    }
+                    break;
+                }
+                case 7: { // File I/O
+                    std::cout << "1. Save to CSV  2. Load from CSV" << std::endl;
+                    int sub; std::cin >> sub;
+                    if (sub == 1) {
+                        Matrix A = inputMatrix("Matrix A");
+                        std::string filename;
+                        std::cout << "Enter filename: ";
+                        std::cin >> filename;
+                        A.saveCSV(filename);
+                        std::cout << "Matrix saved to " << filename << std::endl;
+                    } else if (sub == 2) {
+                        std::string filename;
+                        std::cout << "Enter filename: ";
+                        std::cin >> filename;
+                        Matrix A = Matrix::loadCSV(filename);
+                        std::cout << "Loaded matrix:" << std::endl;
+                        A.print();
+                    }
+                    break;
+                }
+                case 8: { // Matrix Manipulation
+                    std::cout << "1. Submatrix  2. Horizontal Stack  3. Vertical Stack  4. Apply Function" << std::endl;
+                    int sub; std::cin >> sub;
+                    if (sub == 1) {
+                        Matrix A = inputMatrix("Matrix A");
+                        int sr, sc, nr, nc;
+                        std::cout << "Start row, Start col, Num rows, Num cols: ";
+                        std::cin >> sr >> sc >> nr >> nc;
+                        Matrix Sub = A.submatrix(sr, sc, nr, nc);
+                        std::cout << "Submatrix:" << std::endl;
+                        Sub.print();
+                    } else if (sub == 2) {
+                        Matrix A = inputMatrix("Matrix A");
+                        Matrix B = inputMatrix("Matrix B");
+                        Matrix C = Matrix::hstack(A, B);
+                        std::cout << "Horizontally stacked:" << std::endl;
+                        C.print();
+                    } else if (sub == 3) {
+                        Matrix A = inputMatrix("Matrix A");
+                        Matrix B = inputMatrix("Matrix B");
+                        Matrix C = Matrix::vstack(A, B);
+                        std::cout << "Vertically stacked:" << std::endl;
+                        C.print();
+                    } else if (sub == 4) {
+                        Matrix A = inputMatrix("Matrix A");
+                        std::cout << "Functions: 1. sin  2. cos  3. exp  4. square  5. sqrt  6. abs" << std::endl;
+                        int func; std::cin >> func;
+                        if (func == 1) {
+                            Matrix Result = A.applyFunction([](double x) { return std::sin(x); });
+                            std::cout << "Result:" << std::endl;
+                            Result.print();
+                        } else if (func == 2) {
+                            Matrix Result = A.applyFunction([](double x) { return std::cos(x); });
+                            std::cout << "Result:" << std::endl;
+                            Result.print();
+                        } else if (func == 3) {
+                            Matrix Result = A.applyFunction([](double x) { return std::exp(x); });
+                            std::cout << "Result:" << std::endl;
+                            Result.print();
+                        } else if (func == 4) {
+                            Matrix Result = A.applyFunction([](double x) { return x * x; });
+                            std::cout << "Result:" << std::endl;
+                            Result.print();
+                        } else if (func == 5) {
+                            Matrix Result = A.applyFunction([](double x) { return std::sqrt(std::abs(x)); });
+                            std::cout << "Result:" << std::endl;
+                            Result.print();
+                        } else if (func == 6) {
+                            Matrix Result = A.applyFunction([](double x) { return std::abs(x); });
+                            std::cout << "Result:" << std::endl;
+                            Result.print();
+                        }
                     }
                     break;
                 }

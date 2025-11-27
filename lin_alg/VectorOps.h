@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <iostream>
 
+namespace LinAlg {
+
 namespace VectorOps {
 
     inline double dot(const std::vector<double>& v1, const std::vector<double>& v2) {
@@ -62,9 +64,6 @@ namespace VectorOps {
         return result;
     }
 
-    // Forward declaration for Matrix if needed, but VectorOps is header-only and usually included by Matrix.
-    // However, outerProduct returns a Matrix. We might need to return vector<vector<double>> to avoid circular dependency
-    // or rely on user to construct Matrix from it. Let's return vector<vector<double>> for simplicity here.
     inline std::vector<std::vector<double>> outerProduct(const std::vector<double>& v1, const std::vector<double>& v2) {
         std::vector<std::vector<double>> result(v1.size(), std::vector<double>(v2.size()));
         for (size_t i = 0; i < v1.size(); ++i) {
@@ -82,6 +81,9 @@ namespace VectorOps {
         }
         std::cout << ")" << std::endl;
     }
-}
+
+} // namespace VectorOps
+
+} // namespace LinAlg
 
 #endif // VECTOR_OPS_H

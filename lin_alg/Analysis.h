@@ -5,6 +5,8 @@
 #include <vector>
 #include <utility>
 
+namespace LinAlg {
+
 class Analysis {
 public:
     // Principal Component Analysis
@@ -23,5 +25,7 @@ public:
     // Apply Linear Transformation to a set of points (Matrix)
     static Matrix transform(const Matrix& T, const Matrix& Points);
 };
+
+} // namespace LinAlg
 
 #endif // ANALYSIS_H

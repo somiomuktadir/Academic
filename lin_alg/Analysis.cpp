@@ -4,6 +4,8 @@
 #include <numeric>
 #include <algorithm>
 
+namespace LinAlg {
+
 std::pair<Matrix, Matrix> Analysis::PCA(const Matrix& X, int numComponents) {
     int n = X.getRows();
     int m = X.getCols();
@@ -13,11 +15,11 @@ std::pair<Matrix, Matrix> Analysis::PCA(const Matrix& X, int numComponents) {
     for (int j = 0; j < m; ++j) {
         double sum = 0;
         for (int i = 0; i < n; ++i) {
-            sum += X.at(i, j);
+            sum += X(i, j);
         }
         double mean = sum / n;
         for (int i = 0; i < n; ++i) {
-            Centered.at(i, j) -= mean;
+            Centered(i, j) -= mean;
         }
     }
     
@@ -28,10 +30,9 @@ std::pair<Matrix, Matrix> Analysis::PCA(const Matrix& X, int numComponents) {
     auto [Evals, Evecs] = Decomposer::Eigen(Cov);
     
     // 4. Sort Eigenvectors by Eigenvalues (descending)
-    // Note: Decomposer::Eigen returns unsorted. We need to sort.
     std::vector<std::pair<double, int>> evalPairs;
     for (int i = 0; i < m; ++i) {
-        evalPairs.push_back({Evals.at(i, i), i});
+        evalPairs.push_back({Evals(i, i), i});
     }
     std::sort(evalPairs.rbegin(), evalPairs.rend());
     
@@ -39,7 +40,7 @@ std::pair<Matrix, Matrix> Analysis::PCA(const Matrix& X, int numComponents) {
     for (int i = 0; i < m; ++i) {
         int oldIndex = evalPairs[i].second;
         for (int k = 0; k < m; ++k) {
-            SortedEvecs.at(k, i) = Evecs.at(k, oldIndex);
+            SortedEvecs(k, i) = Evecs(k, oldIndex);
         }
     }
     
@@ -47,7 +48,7 @@ std::pair<Matrix, Matrix> Analysis::PCA(const Matrix& X, int numComponents) {
     Matrix Components(m, numComponents);
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < numComponents; ++j) {
-            Components.at(i, j) = SortedEvecs.at(i, j);
+            Components(i, j) = SortedEvecs(i, j);
         }
     }
     
@@ -65,24 +66,21 @@ std::vector<double> Analysis::transform(const Matrix& A, const std::vector<doubl
     std::vector<double> result(rows, 0.0);
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            result[i] += A.at(i, j) * v[j];
+            result[i] += A(i, j) * v[j];
         }
     }
     return result;
 }
 
 Matrix Analysis::transform(const Matrix& T, const Matrix& Points) {
-    // Points are assumed to be row vectors in the Points matrix? 
-    // Usually T * v. If Points has points as columns, then T * Points.
-    // If Points has points as rows, then Points * T^T.
-    // Let's assume Points are columns for standard linear algebra notation T * P.
     return T * Points;
 }
 
 std::pair<Matrix, Matrix> Analysis::diagonalize(const Matrix& A) {
     // A = P * D * P^-1
     // Decomposer::Eigen returns {D, P} (Eigenvalues, Eigenvectors)
-    // We want to return {P, D}
     auto [D, P] = Decomposer::Eigen(A);
     return {P, D};
 }
+
+} // namespace LinAlg
