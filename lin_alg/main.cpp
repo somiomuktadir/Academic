@@ -3,12 +3,17 @@
 #include <string>
 #include <limits>
 #include <cmath>
+#include <complex>
 #include "Matrix.h"
 #include "VectorOps.h"
 #include "LinearSolver.h"
 #include "Decomposer.h"
 #include "Analysis.h"
 #include "Logger.h"
+#include "SparseMatrix.h"
+#include "IterativeSolvers.h"
+#include "MatrixMarket.h"
+#include "ComplexMatrix.h"
 
 using namespace LinAlg;
 
@@ -44,16 +49,34 @@ std::vector<double> inputVector(const std::string& name) {
 }
 
 void printMenu() {
-    std::cout << "\n=== Linear Algebra CLI ===" << std::endl;
+    std::cout << "\n=== Linear Algebra CLI ===";
+    #if defined(USE_BLAS) || defined(_OPENMP)
+    std::cout << " [";
+    #ifdef USE_BLAS
+    std::cout << "BLAS";
+    #endif
+    #ifdef _OPENMP
+    #ifdef USE_BLAS
+    std::cout << "+";
+    #endif
+    std::cout << "OpenMP";
+    #endif
+    std::cout << "]";
+    #endif
+    std::cout << std::endl;
+    
     std::cout << "1. Matrix Operations (+, -, *, T)" << std::endl;
     std::cout << "2. Vector Operations (Dot, Norm, Cross)" << std::endl;
     std::cout << "3. Linear Solver (Ax = b)" << std::endl;
     std::cout << "4. Determinant & Inverse" << std::endl;
     std::cout << "5. Decompositions (LU, Cholesky, QR, Eigen, SVD, Diagonalization)" << std::endl;
     std::cout << "6. Analysis (PCA, Rank, Trace)" << std::endl;
-    std::cout << "7. File I/O (Save/Load CSV)" << std::endl;
+    std::cout << "7. File I/O (Save/Load CSV & Matrix Market)" << std::endl;
     std::cout << "8. Matrix Manipulation (Submatrix, Stack, Hadamard)" << std::endl;
     std::cout << "9. Toggle Verbose Mode (Current: " << (Logger::getInstance().isEnabled() ? "ON" : "OFF") << ")" << std::endl;
+    std::cout << "10. Sparse Matrices (CSR/CSC Format)" << std::endl;
+    std::cout << "11. Iterative Solvers (CG, GMRES)" << std::endl;
+    std::cout << "12. Complex Matrices" << std::endl;
     std::cout << "0. Exit" << std::endl;
     std::cout << "Select option: ";
 }
@@ -217,7 +240,7 @@ int main() {
                     break;
                 }
                 case 7: { // File I/O
-                    std::cout << "1. Save to CSV  2. Load from CSV" << std::endl;
+                    std::cout << "1. Save to CSV  2. Load from CSV  3. Matrix Market (.mtx)" << std::endl;
                     int sub; std::cin >> sub;
                     if (sub == 1) {
                         Matrix A = inputMatrix("Matrix A");
@@ -233,6 +256,32 @@ int main() {
                         Matrix A = Matrix::loadCSV(filename);
                         std::cout << "Loaded matrix:" << std::endl;
                         A.print();
+                    } else if (sub == 3) {
+                        std::cout << "1. Save Dense  2. Save Sparse  3. Load" << std::endl;
+                        int mtxSub; std::cin >> mtxSub;
+                        if (mtxSub == 1) {
+                            Matrix A = inputMatrix("Matrix A");
+                            std::string filename;
+                            std::cout << "Enter filename (.mtx): ";
+                            std::cin >> filename;
+                            MatrixMarket::saveDense(filename, A);
+                            std::cout << "Matrix saved to " << filename << std::endl;
+                        } else if (mtxSub == 2) {
+                            Matrix A = inputMatrix("Matrix A");
+                            std::string filename;
+                            std::cout << "Enter filename (.mtx): ";
+                            std::cin >> filename;
+                            SparseMatrixCSR sparse = SparseMatrixCSR::fromDense(A);
+                            MatrixMarket::saveSparse(filename, sparse);
+                            std::cout << "Sparse matrix saved to " << filename << std::endl;
+                        } else if (mtxSub == 3) {
+                            std::string filename;
+                            std::cout << "Enter filename (.mtx): ";
+                            std::cin >> filename;
+                            Matrix A = MatrixMarket::loadDense(filename);
+                            std::cout << "Loaded matrix:" << std::endl;
+                            A.print();
+                        }
                     }
                     break;
                 }
@@ -287,6 +336,169 @@ int main() {
                             Matrix Result = A.applyFunction([](double x) { return std::abs(x); });
                             std::cout << "Result:" << std::endl;
                             Result.print();
+                        }
+                    }
+                    break;
+                }
+                case 10: { // Sparse Matrices
+                    std::cout << "1. Convert Dense to Sparse  2. Sparse Operations  3. View Statistics" << std::endl;
+                    int sub; std::cin >> sub;
+                    if (sub == 1) {
+                        Matrix A = inputMatrix("Matrix A");
+                        std::cout << "Convert to: 1. CSR  2. CSC" << std::endl;
+                        int fmt; std::cin >> fmt;
+                        if (fmt == 1) {
+                            SparseMatrixCSR sparse = SparseMatrixCSR::fromDense(A);
+                            sparse.printStats();
+                            std::cout << "\nSparse matrix:" << std::endl;
+                            sparse.print();
+                        } else {
+                            SparseMatrixCSC sparse = SparseMatrixCSC::fromDense(A);
+                            sparse.printStats();
+                            std::cout << "\nSparse matrix:" << std::endl;
+                            sparse.print();
+                        }
+                    } else if (sub == 2) {
+                        Matrix A = inputMatrix("Matrix A (will convert to sparse)");
+                        SparseMatrixCSR sparseA = SparseMatrixCSR::fromDense(A);
+                        std::cout << "Choose operation: 1. Scalar multiply  2. Add to another" << std::endl;
+                        int op; std::cin >> op;
+                        if (op == 1) {
+                            double scalar;
+                            std::cout << "Enter scalar: ";
+                            std::cin >> scalar;
+                            SparseMatrixCSR result = sparseA * scalar;
+                            result.print();
+                        } else {
+                            Matrix B = inputMatrix("Matrix B");
+                            SparseMatrixCSR sparseB = SparseMatrixCSR::fromDense(B);
+                            SparseMatrixCSR result = sparseA + sparseB;
+                            result.print();
+                        }
+                    } else if (sub == 3) {
+                        Matrix A = inputMatrix("Matrix A");
+                        SparseMatrixCSR sparse = SparseMatrixCSR::fromDense(A);
+                        sparse.printStats();
+                    }
+                    break;
+                }
+                case 11: { // Iterative Solvers
+                    std::cout << "1. Conjugate Gradient (CG)  2. GMRES  3. Preconditioned CG" << std::endl;
+                    int sub; std::cin >> sub;
+                    Matrix A = inputMatrix("Matrix A");
+                    std::vector<double> b = inputVector("Vector b");
+                    double tol;
+                    int maxIter;
+                    std::cout << "Enter tolerance (e.g., 1e-6): ";
+                    std::cin >> tol;
+                    std::cout << "Enter max iterations: ";
+                    std::cin >> maxIter;
+                    
+                    std::vector<double> x;
+                    if (sub == 1) {
+                        std::cout << "Use sparse format? (1=Yes, 0=No): ";
+                        int useSparse; std::cin >> useSparse;
+                        if (useSparse) {
+                            SparseMatrixCSR sparseA = SparseMatrixCSR::fromDense(A);
+                            x = IterativeSolvers::CG(sparseA, b, tol, maxIter);
+                        } else {
+                            x = IterativeSolvers::CG(A, b, tol, maxIter);
+                        }
+                    } else if (sub == 2) {
+                        int restart;
+                        std::cout << "Enter restart parameter (e.g., 30): ";
+                        std::cin >> restart;
+                        std::cout << "Use sparse format? (1=Yes, 0=No): ";
+                        int useSparse; std::cin >> useSparse;
+                        if (useSparse) {
+                            SparseMatrixCSR sparseA = SparseMatrixCSR::fromDense(A);
+                            x = IterativeSolvers::GMRES(sparseA, b, restart, tol, maxIter);
+                        } else {
+                            x = IterativeSolvers::GMRES(A, b, restart, tol, maxIter);
+                        }
+                    } else if (sub == 3) {
+                        x = IterativeSolvers::PCG(A, b, tol, maxIter);
+                    }
+                    
+                    std::cout << "Solution x: ";
+                    VectorOps::print(x);
+                    break;
+                }
+                case 12: { // Complex Matrices
+                    std::cout << "1. Create and Display  2. Arithmetic  3. Check Hermitian" << std::endl;
+                    int sub; std::cin >> sub;
+                    if (sub == 1) {
+                        int r, c;
+                        std::cout << "Enter dimensions (rows cols): ";
+                        std::cin >> r >> c;
+                        ComplexMatrix M(r, c);
+                        std::cout << "Enter elements (real imag pairs):" << std::endl;
+                        for (int i = 0; i < r; ++i) {
+                            for (int j = 0; j < c; ++j) {
+                                double re, im;
+                                std::cin >> re >> im;
+                                M(i, j) = std::complex<double>(re, im);
+                            }
+                        }
+                        std::cout << "\nComplex Matrix:" << std::endl;
+                        M.print();
+                        std::cout << "\nConjugate Transpose:" << std::endl;
+                        M.conjugateTranspose().print();
+                    } else if (sub == 2) {
+                        int r, c;
+                        std::cout << "Enter dimensions for Matrix A (rows cols): ";
+                        std::cin >> r >> c;
+                        ComplexMatrix A(r, c);
+                        std::cout << "Enter elements for A (real imag pairs):" << std::endl;
+                        for (int i = 0; i < r; ++i) {
+                            for (int j = 0; j < c; ++j) {
+                                double re, im;
+                                std::cin >> re >> im;
+                                A(i, j) = std::complex<double>(re, im);
+                            }
+                        }
+                        std::cout << "Operation: 1. Scalar multiply  2. Add to another" << std::endl;
+                        int op; std::cin >> op;
+                        if (op == 1) {
+                            double re, im;
+                            std::cout << "Enter scalar (real imag): ";
+                            std::cin >> re >> im;
+                            ComplexMatrix result = A * std::complex<double>(re, im);
+                            result.print();
+                        } else {
+                            int r2, c2;
+                            std::cout << "Enter dimensions for Matrix B (rows cols): ";
+                            std::cin >> r2 >> c2;
+                            ComplexMatrix B(r2, c2);
+                            std::cout << "Enter elements for B (real imag pairs):" << std::endl;
+                            for (int i = 0; i < r2; ++i) {
+                                for (int j = 0; j < c2; ++j) {
+                                    double re, im;
+                                    std::cin >> re >> im;
+                                    B(i, j) = std::complex<double>(re, im);
+                                }
+                            }
+                            ComplexMatrix result = A + B;
+                            result.print();
+                        }
+                    } else if (sub == 3) {
+                        int n;
+                        std::cout << "Enter size for square matrix: ";
+                        std::cin >> n;
+                        ComplexMatrix M(n, n);
+                        std::cout << "Enter elements (real imag pairs):" << std::endl;
+                        for (int i = 0; i < n; ++i) {
+                            for (int j = 0; j < n; ++j) {
+                                double re, im;
+                                std::cin >> re >> im;
+                                M(i, j) = std::complex<double>(re, im);
+                            }
+                        }
+                        M.print();
+                        if (M.isHermitian()) {
+                            std::cout << "Matrix is Hermitian!" << std::endl;
+                        } else {
+                            std::cout << "Matrix is NOT Hermitian." << std::endl;
                         }
                     }
                     break;

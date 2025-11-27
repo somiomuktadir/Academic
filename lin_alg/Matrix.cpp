@@ -4,6 +4,19 @@
 #include <sstream>
 #include <algorithm>
 
+// Optional BLAS support
+#ifdef USE_BLAS
+extern "C" {
+    void cblas_dgemm(const int Order, const int TransA, const int TransB,
+                     const int M, const int N, const int K,
+                     const double alpha, const double *A, const int lda,
+                     const double *B, const int ldb,
+                     const double beta, double *C, const int ldc);
+}
+#define CblasRowMajor 101
+#define CblasNoTrans 111
+#endif
+
 namespace LinAlg {
 
 // Constructors
@@ -115,7 +128,20 @@ Matrix Matrix::operator*(const Matrix& other) const {
         throw std::invalid_argument("Matrix dimensions incompatible for multiplication");
     }
     Matrix result(rows, other.cols);
-    // Using ikj loop order for better cache locality
+    
+#ifdef USE_BLAS
+    // Use BLAS cblas_dgemm for matrix multiplication: C = alpha*A*B + beta*C
+    // result = 1.0 * this * other + 0.0 * result
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                rows, other.cols, cols,
+                1.0, data.data(), cols,
+                other.data.data(), other.cols,
+                0.0, result.data.data(), result.cols);
+#else
+    // Native implementation with optional OpenMP parallelization
+    #ifdef _OPENMP
+    #pragma omp parallel for schedule(static) if(rows > 100 && other.cols > 100)
+    #endif
     for (int i = 0; i < rows; ++i) {
         for (int k = 0; k < cols; ++k) {
             double aik = data[i * cols + k];
@@ -124,6 +150,8 @@ Matrix Matrix::operator*(const Matrix& other) const {
             }
         }
     }
+#endif
+    
     return result;
 }
 

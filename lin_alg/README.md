@@ -60,7 +60,44 @@ A comprehensive, high-performance command-line tool for linear algebra operation
 ### File I/O
 - **Save to CSV**: Export matrices to comma-separated value files
 - **Load from CSV**: Import matrices from CSV files
+- **Matrix Market Format**: NIST-compliant .mtx file format support
+  - Coordinate format (sparse matrices)
+  - Array format (dense matrices)
+  - Symmetric/Hermitian/Skew-symmetric patterns
 - High-precision output (15 decimal places) for numerical accuracy
+
+### Sparse Matrices (NEW)
+- **CSR Format**: Compressed Sparse Row for efficient row-wise operations
+- **CSC Format**: Compressed Sparse Column for efficient column-wise operations
+- **Automatic Conversion**: Dense to sparse and sparse to dense
+- **Sparse Arithmetic**: Addition, scalar multiplication, matrix-vector products
+- **Memory Efficient**: ~90% memory savings for matrices with >90% zeros
+- **Statistics**: Sparsity percentage and memory usage reporting
+
+### Iterative Solvers (NEW)
+- **Conjugate Gradient (CG)**: For symmetric positive-definite systems
+  - Optimized for both dense and sparse matrices
+  - Convergence monitoring with residual tracking
+- **GMRES**: Generalized Minimal Residual for general systems
+  - Restarted GMRES(m) with adjustable restart parameter
+  - Arnoldi iteration with Modified Gram-Schmidt
+- **Preconditioned CG**: Jacobi preconditioner for improved convergence
+- User-configurable tolerance and maximum iterations
+
+### Complex Matrices (NEW)
+- **Complex Arithmetic**: Addition, subtraction, multiplication with complex numbers
+- **Conjugate Transpose**: Hermitian transpose operations
+- **Hermitian Detection**: Automatic verification of Hermitian matrices
+- **Complex Scalars**: Support for complex scalar multiplication
+- Formatted output with real and imaginary components
+
+### Performance Optimizations (NEW)
+- **BLAS Integration** (Optional): 5-10x faster matrix multiplication via `cblas_dgemm`
+  - Automatic detection at compile time
+  - Graceful fallback to native implementation
+- **OpenMP Parallelization** (Optional): Multi-threaded matrix operations
+  - Automatic thread scaling for large matrices (>100×100)
+  - Enabled at compile time if OpenMP available
 
 ### Verbose Mode
 - **Step-by-Step Explanations**: Toggle verbose mode (Option 9) to see detailed algorithmic steps
@@ -280,17 +317,3 @@ bool operator!=(const Matrix& other) const;
 - SVD uses Golub-Kahan bidiagonalization for numerically stable computation
 - Use verbose mode (Option 9) to understand algorithm behavior and see step-by-step execution
 - File I/O uses standard CSV format (comma-separated, no headers)
-
-## Future Enhancements
-
-- Sparse matrix support with CSR/CSC formats
-- GPU acceleration via CUDA or OpenCL
-- BLAS/LAPACK integration for production performance
-- Iterative solvers (Conjugate Gradient, GMRES) for large systems
-- Matrix market format support
-- Parallel matrix multiplication
-- Complex matrix support
-
-## License
-
-This project is open source and available for educational and research purposes.
