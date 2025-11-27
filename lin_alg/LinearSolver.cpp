@@ -1,13 +1,15 @@
 #include "LinearSolver.h"
 #include "Logger.h"
 #include "VectorOps.h"
+#include "Decomposer.h"
+#include "Analysis.h"
 #include <sstream>
 #include <iomanip>
 
 std::vector<double> LinearSolver::solve(const Matrix& A, const std::vector<double>& b) {
     int n = A.getRows();
     if (A.getCols() != n) throw std::invalid_argument("Matrix must be square");
-    if (b.size() != n) throw std::invalid_argument("Vector dimension mismatch");
+    if (b.size() != static_cast<size_t>(n)) throw std::invalid_argument("Vector dimension mismatch");
 
     // Create augmented matrix [A|b]
     // We'll work with a local copy of data for Gaussian elimination
@@ -243,4 +245,32 @@ std::vector<double> LinearSolver::solveRefined(const Matrix& A, const std::vecto
     }
     
     return x;
+}
+
+#include "Decomposer.h"
+#include "Analysis.h" // For transform (Matrix * vector)
+
+std::vector<double> LinearSolver::leastSquares(const Matrix& A, const std::vector<double>& b) {
+    // Solve Ax = b using QR decomposition
+    // A = Q * R
+    // Rx = Q^T * b
+    
+    int m = A.getRows();
+    int n = A.getCols();
+    
+    if (m < n) throw std::invalid_argument("Underdetermined system (rows < cols) not supported by this least squares implementation");
+    if (b.size() != static_cast<size_t>(m)) throw std::invalid_argument("Vector dimension mismatch");
+    
+    auto [Q, R] = Decomposer::QR(A);
+    
+    // Compute y = Q^T * b
+    // We can use Analysis::transform for Matrix * vector
+    // Q is m x n. Q^T is n x m. b is m. Result is n.
+    std::vector<double> y = Analysis::transform(Q.transpose(), b);
+    
+    // Solve Rx = y
+    // R is n x n upper triangular. We can use back substitution directly or use solve().
+    // Since R is square, solve() works (it uses Gaussian elimination which is overkill for triangular, but correct).
+    // For efficiency, we should use back substitution, but reusing solve() is easier for now.
+    return solve(R, y);
 }

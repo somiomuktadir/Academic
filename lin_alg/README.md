@@ -9,15 +9,21 @@ A comprehensive command-line tool for linear algebra operations with step-by-ste
 - **Transpose**: Matrix transposition
 - **Power**: Fast exponentiation using binary exponentiation
 - **Rank & Trace**: Compute matrix rank and trace
+- **RREF**: Reduced Row Echelon Form
+- **Condition Number**: Ratio of largest to smallest singular value
 
 ### Vector Operations
 - **Dot Product**: Inner product of two vectors
 - **Norm**: Euclidean norm (L2 norm)
 - **Cross Product**: Cross product for 3D vectors
 - **Normalization**: Unit vector computation
+- **Angle**: Angle between two vectors
+- **Projection**: Vector projection
+- **Outer Product**: Outer product of two vectors
 
 ### Linear Systems
 - **Gaussian Elimination**: Solve $Ax = b$ with partial pivoting
+- **Least Squares**: Solve overdetermined systems $Ax = b$ using QR decomposition
 - **Determinant**: Compute determinant using Gaussian elimination
 - **Matrix Inverse**: Find inverse using Gauss-Jordan elimination
 

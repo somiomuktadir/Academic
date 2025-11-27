@@ -45,6 +45,36 @@ namespace VectorOps {
         };
     }
     
+    inline double angle(const std::vector<double>& v1, const std::vector<double>& v2) {
+        double dotProd = dot(v1, v2);
+        double n1 = norm(v1);
+        double n2 = norm(v2);
+        if (n1 == 0 || n2 == 0) return 0.0;
+        return std::acos(dotProd / (n1 * n2));
+    }
+
+    inline std::vector<double> projection(const std::vector<double>& v, const std::vector<double>& onto) {
+        double n_onto = norm(onto);
+        if (n_onto == 0) return std::vector<double>(v.size(), 0.0);
+        double scalar = dot(v, onto) / (n_onto * n_onto);
+        std::vector<double> result = onto;
+        for (double& val : result) val *= scalar;
+        return result;
+    }
+
+    // Forward declaration for Matrix if needed, but VectorOps is header-only and usually included by Matrix.
+    // However, outerProduct returns a Matrix. We might need to return vector<vector<double>> to avoid circular dependency
+    // or rely on user to construct Matrix from it. Let's return vector<vector<double>> for simplicity here.
+    inline std::vector<std::vector<double>> outerProduct(const std::vector<double>& v1, const std::vector<double>& v2) {
+        std::vector<std::vector<double>> result(v1.size(), std::vector<double>(v2.size()));
+        for (size_t i = 0; i < v1.size(); ++i) {
+            for (size_t j = 0; j < v2.size(); ++j) {
+                result[i][j] = v1[i] * v2[j];
+            }
+        }
+        return result;
+    }
+
     inline void print(const std::vector<double>& v) {
         std::cout << "( ";
         for (double val : v) {

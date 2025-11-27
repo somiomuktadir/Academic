@@ -42,6 +42,8 @@ public:
     // Analysis
     double trace() const;
     int rank() const;
+    Matrix rref() const;
+    double conditionNumber() const;
     
     // Utilities
     static Matrix identity(int n);

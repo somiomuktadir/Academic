@@ -288,7 +288,7 @@ std::pair<double, std::vector<double>> Decomposer::PowerIteration(const Matrix& 
             }
         }
         
-        double norm = VectorOps::norm(b_next);
+        // double norm = VectorOps::norm(b_next); // Unused
         b_next = VectorOps::normalize(b_next);
         
         // Rayleigh quotient: (b_next . A * b_next) / (b_next . b_next) -> approximates lambda

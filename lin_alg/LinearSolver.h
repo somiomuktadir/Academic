@@ -11,8 +11,11 @@ public:
     // Solves Ax = b using Gaussian Elimination
     static std::vector<double> solve(const Matrix& A, const std::vector<double>& b);
     
-    // Solve Ax = b with iterative refinement for improved accuracy
-    static std::vector<double> solveRefined(const Matrix& A, const std::vector<double>& b, int maxIter = 3);
+    // Iterative refinement for better accuracy
+    static std::vector<double> solveRefined(const Matrix& A, const std::vector<double>& b, int maxIter = 5);
+
+    // Least Squares: Solve A * x = b (approx) for overdetermined systems
+    static std::vector<double> leastSquares(const Matrix& A, const std::vector<double>& b);
     
     // Calculates determinant using Gaussian Elimination to upper triangular form
     static double determinant(const Matrix& A);

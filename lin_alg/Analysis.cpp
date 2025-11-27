@@ -60,7 +60,7 @@ std::pair<Matrix, Matrix> Analysis::PCA(const Matrix& X, int numComponents) {
 std::vector<double> Analysis::transform(const Matrix& A, const std::vector<double>& v) {
     int rows = A.getRows();
     int cols = A.getCols();
-    if (v.size() != cols) throw std::invalid_argument("Vector dimension mismatch for transformation");
+    if (v.size() != static_cast<size_t>(cols)) throw std::invalid_argument("Vector dimension mismatch for transformation");
     
     std::vector<double> result(rows, 0.0);
     for (int i = 0; i < rows; ++i) {

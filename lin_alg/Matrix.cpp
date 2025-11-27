@@ -1,4 +1,5 @@
 #include "Matrix.h"
+#include "Decomposer.h"
 
 Matrix::Matrix(int r, int c, double initialValue) : rows(r), cols(c) {
     data.reserve(r);
@@ -154,4 +155,68 @@ int Matrix::rank() const {
         pivotRow++;
     }
     return pivotRow;
+}
+
+Matrix Matrix::rref() const {
+    Matrix M = *this;
+    int lead = 0;
+    int rowCount = rows;
+    int colCount = cols;
+
+    for (int r = 0; r < rowCount; ++r) {
+        if (colCount <= lead) break;
+        int i = r;
+        while (M.at(i, lead) == 0) {
+            i++;
+            if (rowCount == i) {
+                i = r;
+                lead++;
+                if (colCount == lead) return M;
+            }
+        }
+
+        for (int k = 0; k < colCount; ++k) {
+            std::swap(M.at(i, k), M.at(r, k));
+        }
+
+        double val = M.at(r, lead);
+        for (int k = 0; k < colCount; ++k) {
+            M.at(r, k) /= val;
+        }
+
+        for (int i = 0; i < rowCount; ++i) {
+            if (i != r) {
+                double val = M.at(i, lead);
+                for (int k = 0; k < colCount; ++k) {
+                    M.at(i, k) -= val * M.at(r, k);
+                }
+            }
+        }
+        lead++;
+    }
+    return M;
+}
+
+double Matrix::conditionNumber() const {
+    // Condition number is ratio of max singular value to min singular value
+    // We can use SVD for this.
+    try {
+        auto [U, S, V] = Decomposer::SVD(*this);
+        double maxSv = 0;
+        double minSv = 1e300; // Large number
+        
+        int minDim = std::min(rows, cols);
+        for(int i=0; i<minDim; ++i) {
+            double s = S.at(i,i);
+            if(s > maxSv) maxSv = s;
+            if(s < minSv && s > 1e-10) minSv = s; // Avoid zero singular values for singular matrices
+        }
+        
+        if (minSv > 1e299) return 1.0/0.0; // Infinity (singular)
+        if (minSv < 1e-10) return 1.0/0.0;
+        
+        return maxSv / minSv;
+    } catch (...) {
+        return -1.0; // Error
+    }
 }

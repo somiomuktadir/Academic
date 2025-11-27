@@ -12,6 +12,7 @@ $(TARGET): $(OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+
 clean:
 	rm -f $(OBJS) $(TARGET)
 
