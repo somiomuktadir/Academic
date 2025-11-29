@@ -12,7 +12,7 @@
 #include "Logger.h"
 #include "SparseMatrix.h"
 #include "IterativeSolvers.h"
-#include "MatrixMarket.h"
+#include "Statistics.h"
 #include "ComplexMatrix.h"
 
 using namespace LinAlg;
@@ -65,13 +65,13 @@ void printMenu() {
     #endif
     std::cout << std::endl;
     
-    std::cout << "1. Matrix Operations (+, -, *, T)" << std::endl;
+    std::cout << "1. Matrix Operations (+, -, *, T, Norms, Kronecker)" << std::endl;
     std::cout << "2. Vector Operations (Dot, Norm, Cross)" << std::endl;
     std::cout << "3. Linear Solver (Ax = b)" << std::endl;
-    std::cout << "4. Determinant & Inverse" << std::endl;
+    std::cout << "4. Determinant, Inverse & Pseudo-Inverse" << std::endl;
     std::cout << "5. Decompositions (LU, Cholesky, QR, Eigen, SVD, Diagonalization)" << std::endl;
     std::cout << "6. Analysis (PCA, Rank, Trace)" << std::endl;
-    std::cout << "7. File I/O (Save/Load CSV & Matrix Market)" << std::endl;
+    std::cout << "7. Statistics (Mean, Variance, Covariance, Correlation)" << std::endl;
     std::cout << "8. Matrix Manipulation (Submatrix, Stack, Hadamard)" << std::endl;
     std::cout << "9. Toggle Verbose Mode (Current: " << (Logger::getInstance().isEnabled() ? "ON" : "OFF") << ")" << std::endl;
     std::cout << "10. Sparse Matrices (CSR/CSC Format)" << std::endl;
@@ -101,7 +101,7 @@ int main() {
             
             switch (choice) {
                 case 1: { // Matrix Ops
-                    std::cout << "1. Add  2. Subtract  3. Multiply  4. Transpose  5. Power  6. Hadamard" << std::endl;
+                    std::cout << "1. Add  2. Subtract  3. Multiply  4. Transpose  5. Power  6. Hadamard  7. Norms  8. Kronecker" << std::endl;
                     int sub; std::cin >> sub;
                     if (sub == 4) {
                         Matrix A = inputMatrix("Matrix A");
@@ -118,6 +118,16 @@ int main() {
                         Matrix B = inputMatrix("Matrix B");
                         std::cout << "Hadamard product (element-wise):" << std::endl;
                         A.hadamard(B).print();
+                    } else if (sub == 7) {
+                        Matrix A = inputMatrix("Matrix A");
+                        std::cout << "Frobenius Norm: " << A.frobeniusNorm() << std::endl;
+                        std::cout << "L1 Norm: " << A.l1Norm() << std::endl;
+                        std::cout << "L-Inf Norm: " << A.lInfNorm() << std::endl;
+                    } else if (sub == 8) {
+                        Matrix A = inputMatrix("Matrix A");
+                        Matrix B = inputMatrix("Matrix B");
+                        std::cout << "Kronecker Product:" << std::endl;
+                        Matrix::kroneckerProduct(A, B).print();
                     } else {
                         Matrix A = inputMatrix("Matrix A");
                         Matrix B = inputMatrix("Matrix B");
@@ -161,13 +171,22 @@ int main() {
                     break;
                 }
                 case 4: { // Det & Inv
+                    std::cout << "1. Determinant  2. Inverse  3. Pseudo-Inverse" << std::endl;
+                    int sub; std::cin >> sub;
                     Matrix A = inputMatrix("Matrix A");
-                    std::cout << "Determinant: " << LinearSolver::determinant(A) << std::endl;
-                    try {
-                        std::cout << "Inverse:" << std::endl;
-                        LinearSolver::inverse(A).print();
-                    } catch (const std::exception& e) {
-                        std::cout << "Inverse not possible: " << e.what() << std::endl;
+                    
+                    if (sub == 1) {
+                        std::cout << "Determinant: " << LinearSolver::determinant(A) << std::endl;
+                    } else if (sub == 2) {
+                        try {
+                            std::cout << "Inverse:" << std::endl;
+                            LinearSolver::inverse(A).print();
+                        } catch (const std::exception& e) {
+                            std::cout << "Inverse not possible: " << e.what() << std::endl;
+                        }
+                    } else if (sub == 3) {
+                        std::cout << "Pseudo-Inverse:" << std::endl;
+                        LinearSolver::pseudoInverse(A).print();
                     }
                     break;
                 }
@@ -239,49 +258,26 @@ int main() {
                     }
                     break;
                 }
-                case 7: { // File I/O
-                    std::cout << "1. Save to CSV  2. Load from CSV  3. Matrix Market (.mtx)" << std::endl;
+                case 7: { // Statistics
+                    std::cout << "1. Mean  2. Variance  3. Std Dev  4. Covariance Matrix  5. Correlation Matrix" << std::endl;
                     int sub; std::cin >> sub;
+                    Matrix A = inputMatrix("Data Matrix (rows=samples, cols=features)");
+                    
                     if (sub == 1) {
-                        Matrix A = inputMatrix("Matrix A");
-                        std::string filename;
-                        std::cout << "Enter filename: ";
-                        std::cin >> filename;
-                        A.saveCSV(filename);
-                        std::cout << "Matrix saved to " << filename << std::endl;
+                        std::cout << "Mean (column-wise): ";
+                        VectorOps::print(Statistics::mean(A, 0));
                     } else if (sub == 2) {
-                        std::string filename;
-                        std::cout << "Enter filename: ";
-                        std::cin >> filename;
-                        Matrix A = Matrix::loadCSV(filename);
-                        std::cout << "Loaded matrix:" << std::endl;
-                        A.print();
+                        std::cout << "Variance (column-wise): ";
+                        VectorOps::print(Statistics::variance(A, 0));
                     } else if (sub == 3) {
-                        std::cout << "1. Save Dense  2. Save Sparse  3. Load" << std::endl;
-                        int mtxSub; std::cin >> mtxSub;
-                        if (mtxSub == 1) {
-                            Matrix A = inputMatrix("Matrix A");
-                            std::string filename;
-                            std::cout << "Enter filename (.mtx): ";
-                            std::cin >> filename;
-                            MatrixMarket::saveDense(filename, A);
-                            std::cout << "Matrix saved to " << filename << std::endl;
-                        } else if (mtxSub == 2) {
-                            Matrix A = inputMatrix("Matrix A");
-                            std::string filename;
-                            std::cout << "Enter filename (.mtx): ";
-                            std::cin >> filename;
-                            SparseMatrixCSR sparse = SparseMatrixCSR::fromDense(A);
-                            MatrixMarket::saveSparse(filename, sparse);
-                            std::cout << "Sparse matrix saved to " << filename << std::endl;
-                        } else if (mtxSub == 3) {
-                            std::string filename;
-                            std::cout << "Enter filename (.mtx): ";
-                            std::cin >> filename;
-                            Matrix A = MatrixMarket::loadDense(filename);
-                            std::cout << "Loaded matrix:" << std::endl;
-                            A.print();
-                        }
+                        std::cout << "Standard Deviation (column-wise): ";
+                        VectorOps::print(Statistics::stdDev(A, 0));
+                    } else if (sub == 4) {
+                        std::cout << "Covariance Matrix:" << std::endl;
+                        Statistics::covarianceMatrix(A).print();
+                    } else if (sub == 5) {
+                        std::cout << "Correlation Matrix:" << std::endl;
+                        Statistics::correlationMatrix(A).print();
                     }
                     break;
                 }

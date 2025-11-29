@@ -5,6 +5,8 @@
 #include "Analysis.h"
 #include <sstream>
 #include <iomanip>
+#include <cmath> // For std::sqrt, std::abs
+#include <algorithm> // For std::max
 
 namespace LinAlg {
 
@@ -88,57 +90,70 @@ double LinearSolver::determinant(const Matrix& A) {
 }
 
 Matrix LinearSolver::inverse(const Matrix& A) {
+    if (A.getRows() != A.getCols()) {
+        throw std::invalid_argument("Matrix must be square for inverse");
+    }
+    
     int n = A.getRows();
-    if (A.getCols() != n) throw std::invalid_argument("Matrix must be square");
+    Matrix augmented = augmentIdentity(A);
     
-    // To find A^-1, we solve A * x_i = e_i for each column i of identity matrix
-    Matrix Inv(n, n);
-    Matrix I = Matrix::identity(n);
-    
-    // We can reuse the PLU decomposition for all columns
-    auto [P, L, U] = Decomposer::PLU(A);
-    
-    for (int col = 0; col < n; ++col) {
-        // e_i is the i-th column of I
-        std::vector<double> e(n, 0.0);
-        e[col] = 1.0;
-        
-        // Solve A * x = e
-        // PA = LU => LUx = Pe
-        
-        // 1. Compute Pe
-        std::vector<double> Pe = Analysis::transform(P, e);
-        
-        // 2. Solve Ly = Pe
-        std::vector<double> y(n);
-        for (int i = 0; i < n; ++i) {
-            double sum = 0;
-            for (int j = 0; j < i; ++j) {
-                sum += L(i, j) * y[j];
+    // Gaussian elimination to reduced row echelon form
+    for (int i = 0; i < n; ++i) {
+        // Find pivot
+        int pivot = i;
+        for (int j = i + 1; j < n; ++j) {
+            if (std::abs(augmented(j, i)) > std::abs(augmented(pivot, i))) {
+                pivot = j;
             }
-            y[i] = (Pe[i] - sum) / L(i, i);
         }
         
-        // 3. Solve Ux = y
-        std::vector<double> x(n);
-        for (int i = n - 1; i >= 0; --i) {
-            double sum = 0;
-            for (int j = i + 1; j < n; ++j) {
-                sum += U(i, j) * x[j];
-            }
-            if (std::abs(U(i, i)) < Matrix::epsilon()) {
-                throw std::runtime_error("Matrix is singular");
-            }
-            x[i] = (y[i] - sum) / U(i, i);
+        if (std::abs(augmented(pivot, i)) < 1e-10) {
+            throw std::runtime_error("Matrix is singular");
         }
         
-        // Store x in Inv
-        for (int i = 0; i < n; ++i) {
-            Inv(i, col) = x[i];
+        // Swap rows
+        if (pivot != i) {
+            for (int j = 0; j < 2 * n; ++j) {
+                std::swap(augmented(i, j), augmented(pivot, j));
+            }
+        }
+        
+        // Scale row
+        double div = augmented(i, i);
+        for (int j = i; j < 2 * n; ++j) {
+            augmented(i, j) /= div;
+        }
+        
+        // Eliminate other rows
+        for (int k = 0; k < n; ++k) {
+            if (k != i) {
+                double factor = augmented(k, i);
+                for (int j = i; j < 2 * n; ++j) {
+                    augmented(k, j) -= factor * augmented(i, j);
+                }
+            }
         }
     }
     
-    return Inv;
+    // Extract inverse
+    return augmented.submatrix(0, n, n, n);
+}
+
+Matrix LinearSolver::pseudoInverse(const Matrix& A) {
+    // Moore-Penrose Pseudo-Inverse using SVD
+    // A^+ = V * S^+ * U^T
+    auto [U, S, V] = Decomposer::SVD(A);
+    
+    Matrix S_plus(A.getCols(), A.getRows()); // Transpose dimensions
+    double tolerance = 1e-10 * std::max(A.getRows(), A.getCols()) * S.at(0, 0);
+    
+    for (int i = 0; i < std::min(S.getRows(), S.getCols()); ++i) {
+        if (S.at(i, i) > tolerance) {
+            S_plus.at(i, i) = 1.0 / S.at(i, i);
+        }
+    }
+    
+    return V * S_plus * U.transpose();
 }
 
 Matrix LinearSolver::power(const Matrix& A, int n) {

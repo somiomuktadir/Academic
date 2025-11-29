@@ -28,6 +28,9 @@ public:
     // Calculates inverse using Gauss-Jordan Elimination
     static Matrix inverse(const Matrix& A);
 
+    // Calculates pseudo-inverse using SVD
+    static Matrix pseudoInverse(const Matrix& A);
+
     // Matrix power
     static Matrix power(const Matrix& A, int n);
 

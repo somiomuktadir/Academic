@@ -9,6 +9,8 @@ A high-performance C++17 linear algebra library featuring dense/sparse matrix op
 -   **Element-wise Operations**: Hadamard product and function application (sin, cos, exp, etc.).
 -   **Manipulation**: Submatrix extraction, horizontal/vertical stacking, and resizing.
 -   **Vector Operations**: Dot product, L2 norm, cross product (3D), and projection.
+-   **Matrix Norms**: Frobenius, L1 (max column sum), and L-Infinity (max row sum) norms.
+-   **Advanced Products**: Kronecker product.
 
 ### Advanced Decompositions
 -   **LU Decomposition**: $PA = LU$ factorization with partial pivoting.
@@ -26,6 +28,7 @@ A high-performance C++17 linear algebra library featuring dense/sparse matrix op
     -   Gaussian Elimination with partial pivoting.
     -   Cholesky Solver for symmetric positive-definite systems.
     -   Least Squares solver for overdetermined systems via QR.
+    -   Pseudo-Inverse solver (Moore-Penrose) for singular/rectangular systems.
 -   **Iterative Solvers**:
     -   **Conjugate Gradient (CG)**: Optimized for symmetric positive-definite systems.
     -   **GMRES**: Generalized Minimal Residual method for non-symmetric systems.
@@ -36,7 +39,6 @@ Efficient handling of large, sparse datasets using compressed storage formats:
 -   **CSR (Compressed Sparse Row)**: Optimized for row-wise operations and matrix-vector multiplication.
 -   **CSC (Compressed Sparse Column)**: Optimized for column-wise operations.
 -   **Operations**: Memory-efficient arithmetic and seamless conversion between dense and sparse formats.
--   **I/O**: Support for the NIST Matrix Market (`.mtx`) format.
 
 ### Complex Number Support
 Full support for complex-valued matrices:
@@ -44,8 +46,10 @@ Full support for complex-valued matrices:
 -   **Hermitian Operations**: Conjugate transpose and Hermitian property verification.
 
 ### Data Analysis & Statistics
+-   **Basic Statistics**: Mean, Variance, Standard Deviation (row/column-wise).
+-   **Multivariate Analysis**: Covariance and Correlation matrices.
 -   **Principal Component Analysis (PCA)**: Dimensionality reduction and feature extraction.
--   **Matrix Statistics**: Computation of rank, trace, and condition number.
+-   **Matrix Analysis**: Rank, Trace, Condition Number.
 
 ## Technical Highlights
 
@@ -86,20 +90,20 @@ make clean
 Run the interactive command-line interface:
 
 ```bash
-./linear_algebra
+./bin/linear_algebra
 ```
 
 ### CLI Menu Structure
 
 The interactive menu provides access to all features:
 
-1.  **Matrix Operations**: Basic arithmetic, transpose, power.
+1.  **Matrix Operations**: Basic arithmetic, transpose, power, norms, Kronecker product.
 2.  **Vector Operations**: Dot/cross products, norms.
 3.  **Linear Solver**: Direct solvers (Gaussian, Cholesky, Least Squares).
-4.  **Determinant & Inverse**: Matrix inversion and determinant calculation.
+4.  **Determinant, Inverse & Pseudo-Inverse**: Matrix inversion and determinant calculation.
 5.  **Decompositions**: LU, QR, Cholesky, Eigen, SVD.
 6.  **Analysis**: PCA, Rank, Condition Number.
-7.  **File I/O**: CSV and Matrix Market import/export.
+7.  **Statistics**: Mean, Variance, Covariance, Correlation.
 8.  **Matrix Manipulation**: Resizing, stacking, submatrices.
 9.  **Toggle Verbose Mode**: Enable/disable educational logging.
 10. **Sparse Matrices**: CSR/CSC operations and statistics.
@@ -128,6 +132,7 @@ The library is encapsulated within the `LinAlg` namespace.
 ```cpp
 #include "Matrix.h"
 #include "LinearSolver.h"
+#include "Statistics.h"
 
 using namespace LinAlg;
 
@@ -139,13 +144,11 @@ int main() {
     // Solve Ax = b
     std::vector<double> x = LinearSolver::solve(A, b);
 
+    // Calculate Statistics
+    std::vector<double> means = Statistics::mean(A, 0); // Column means
+
     // Print result
     VectorOps::print(x);
     return 0;
 }
 ```
-
-## File Formats
-
--   **CSV**: Standard comma-separated values for dense matrices.
--   **Matrix Market (.mtx)**: Industry-standard format for sparse and dense matrices, supporting coordinate and array formats.

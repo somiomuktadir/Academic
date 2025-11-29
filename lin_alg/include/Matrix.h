@@ -65,9 +65,13 @@ public:
     static Matrix hstack(const Matrix& A, const Matrix& B);  // Horizontal concatenation
     static Matrix vstack(const Matrix& A, const Matrix& B);  // Vertical concatenation
     
-    // File I/O
-    void saveCSV(const std::string& filename) const;
-    static Matrix loadCSV(const std::string& filename);
+    // Matrix Norms
+    double frobeniusNorm() const;
+    double l1Norm() const;   // Maximum absolute column sum
+    double lInfNorm() const; // Maximum absolute row sum
+    
+    // Advanced Operations
+    static Matrix kroneckerProduct(const Matrix& A, const Matrix& B);
     
     // Analysis
     double trace() const;

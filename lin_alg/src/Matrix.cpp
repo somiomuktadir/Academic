@@ -1,7 +1,6 @@
 #include "Matrix.h"
 #include "Decomposer.h"
-#include <fstream>
-#include <sstream>
+
 #include <algorithm>
 
 // Optional BLAS support
@@ -261,54 +260,54 @@ Matrix Matrix::vstack(const Matrix& A, const Matrix& B) {
     return result;
 }
 
-// File I/O
-void Matrix::saveCSV(const std::string& filename) const {
-    std::ofstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot open file for writing: " + filename);
+// Matrix Norms
+double Matrix::frobeniusNorm() const {
+    double sumSq = 0.0;
+    for (double val : data) {
+        sumSq += val * val;
     }
-    
-    file << std::setprecision(15);
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            file << data[i * cols + j];
-            if (j < cols - 1) file << ",";
-        }
-        file << "\n";
-    }
-    file.close();
+    return std::sqrt(sumSq);
 }
 
-Matrix Matrix::loadCSV(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot open file for reading: " + filename);
-    }
-    
-    std::vector<std::vector<double>> tempData;
-    std::string line;
-    
-    while (std::getline(file, line)) {
-        std::vector<double> row;
-        std::stringstream ss(line);
-        std::string cell;
-        
-        while (std::getline(ss, cell, ',')) {
-            row.push_back(std::stod(cell));
+double Matrix::l1Norm() const {
+    double maxColSum = 0.0;
+    for (int j = 0; j < cols; ++j) {
+        double colSum = 0.0;
+        for (int i = 0; i < rows; ++i) {
+            colSum += std::abs(at(i, j));
         }
-        
-        if (!row.empty()) {
-            tempData.push_back(row);
+        if (colSum > maxColSum) maxColSum = colSum;
+    }
+    return maxColSum;
+}
+
+double Matrix::lInfNorm() const {
+    double maxRowSum = 0.0;
+    for (int i = 0; i < rows; ++i) {
+        double rowSum = 0.0;
+        for (int j = 0; j < cols; ++j) {
+            rowSum += std::abs(at(i, j));
+        }
+        if (rowSum > maxRowSum) maxRowSum = rowSum;
+    }
+    return maxRowSum;
+}
+
+// Advanced Operations
+Matrix Matrix::kroneckerProduct(const Matrix& A, const Matrix& B) {
+    Matrix result(A.rows * B.rows, A.cols * B.cols);
+    
+    for (int i = 0; i < A.rows; ++i) {
+        for (int j = 0; j < A.cols; ++j) {
+            double a_val = A.at(i, j);
+            for (int k = 0; k < B.rows; ++k) {
+                for (int l = 0; l < B.cols; ++l) {
+                    result.at(i * B.rows + k, j * B.cols + l) = a_val * B.at(k, l);
+                }
+            }
         }
     }
-    
-    file.close();
-    
-    if (tempData.empty()) {
-        throw std::runtime_error("Empty CSV file or invalid format");
-    }
-    
-    return Matrix(tempData);
+    return result;
 }
 
 // Utilities
